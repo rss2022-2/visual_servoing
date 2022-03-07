@@ -79,6 +79,7 @@ class HomographyTransformer:
         relative_xy_msg.y_pos = y
 
         self.cone_pub.publish(relative_xy_msg)
+	self.draw_marker(x, y, "zed_left_camera_frame")
         
     def rqt_callback(self, point_msg):
         x, y = self.transformUvToXy(point_msg.x, point_msg.y)
