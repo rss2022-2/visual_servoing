@@ -11,6 +11,7 @@ from sensor_msgs.msg import Image
 from ackermann_msgs.msg import AckermannDriveStamped
 from visualization_msgs.msg import Marker
 from visual_servoing.msg import ConeLocation, ConeLocationPixel
+from geometry_msgs.msg import Point
 
 #The following collection of pixel locations and corresponding relative
 #ground plane locations are used to compute our homography matrix
@@ -20,10 +21,10 @@ from visual_servoing.msg import ConeLocation, ConeLocationPixel
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_IMAGE_PLANE = [[-1, -1],
-                   [-1, -1],
-                   [-1, -1],
-                   [-1, -1]] # dummy points
+PTS_IMAGE_PLANE = [[216, 52],
+                   [449, 52],
+                   [254, 88],
+                   [417, 88]] # dummy points
 ######################################################
 
 # PTS_GROUND_PLANE units are in inches
@@ -31,10 +32,10 @@ PTS_IMAGE_PLANE = [[-1, -1],
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_GROUND_PLANE = [[-1, -1],
-                    [-1, -1],
-                    [-1, -1],
-                    [-1, -1]] # dummy points
+PTS_GROUND_PLANE = [[0.27, -0.08],
+                    [0.27, 0.08],
+                    [0.37, -0.08],
+                    [0.37, 0.08]] # dummy points
 ######################################################
 
 METERS_PER_INCH = 0.0254
@@ -43,6 +44,7 @@ METERS_PER_INCH = 0.0254
 class HomographyTransformer:
     def __init__(self):
         self.cone_px_sub = rospy.Subscriber("/relative_cone_px", ConeLocationPixel, self.cone_detection_callback)
+        self.rqt_pixel_sub = rospy.Subscriber("/zed/zed_node/left/image_rect_color_mouse_left", Point, self.rqt_callback)
         self.cone_pub = rospy.Publisher("/relative_cone", ConeLocation, queue_size=10)
 
         self.marker_pub = rospy.Publisher("/cone_marker",
@@ -54,7 +56,7 @@ class HomographyTransformer:
         #Initialize data into a homography matrix
 
         np_pts_ground = np.array(PTS_GROUND_PLANE)
-        np_pts_ground = np_pts_ground * METERS_PER_INCH
+        np_pts_ground = np_pts_ground # * METERS_PER_INCH
         np_pts_ground = np.float32(np_pts_ground[:, np.newaxis, :])
 
         np_pts_image = np.array(PTS_IMAGE_PLANE)
@@ -77,6 +79,10 @@ class HomographyTransformer:
         relative_xy_msg.y_pos = y
 
         self.cone_pub.publish(relative_xy_msg)
+        
+    def rqt_callback(self, point_msg):
+        x, y = self.transformUvToXy(point_msg.x, point_msg.y)
+        self.draw_marker(x, y, "/zed_left_camera_frame")
 
 
     def transformUvToXy(self, u, v):
