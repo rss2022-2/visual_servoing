@@ -16,7 +16,7 @@ class ParkingController():
         rospy.Subscriber("/relative_cone", ConeLocation,
             self.relative_cone_callback)
 
-        DRIVE_TOPIC = rospy.get_param("~drive_topic") # set in launch file; different for simulator vs racecar
+        DRIVE_TOPIC = rospy.get_param("/parking_controller/drive_topic") # set in launch file; different for simulator vs racecar
         self.drive_pub = rospy.Publisher(DRIVE_TOPIC,
             AckermannDriveStamped, queue_size=10)
         self.error_pub = rospy.Publisher("/parking_error",
@@ -25,21 +25,65 @@ class ParkingController():
         self.parking_distance = .75 # meters; try playing with this number!
         self.relative_x = 0
         self.relative_y = 0
+        self.last_angle = 0
+        self.direction = 1
+        self.velocity = 1
+        self.angle_tolerance = 3.0*np.pi/180.0 #3 degrees in radians
+        self.distance_tolerance = 0.05
+        self.last_time = None
+        
+        self.P = 6.9
+        self.D = 4.2
+
 
     def relative_cone_callback(self, msg):
         self.relative_x = msg.x_pos
         self.relative_y = msg.y_pos
-        drive_cmd = AckermannDriveStamped()
+        levi = AckermannDriveStamped()
 
-        #################################
+        distance = np.sqrt(\
+                np.square(self.relative_x) + \
+                np.square(self.relative_y))
+        angle = np.arctan(self.relative_y/self.relative_x)
+        print("angle: " + str(angle) + "\t dist: " + str(distance))
+        dist_err = distance - self.parking_distance
+        if abs(dist_err) < self.distance_tolerance: dist_err = 0
 
-        # YOUR CODE HERE
-        # Use relative position and your control law to set drive_cmd
+        current_time = rospy.get_time()
+        if self.last_time is None: self.last_time = current_time
+        delta_t = current_time - self.last_time
 
-        #################################
+        #case where we're near right distance but wrong angle
+        if abs(dist_err) < self.distance_tolerance + 0.15  and abs(angle) > self.angle_tolerance:
+            levi.drive.speed = self.direction*0.4
+            levi.drive.steering_angle = self.direction*self.P*angle
+            
 
-        self.drive_pub.publish(drive_cmd)
-        self.error_publisher()
+        #case where we are parked
+        elif dist_err == 0:
+            levi.drive.speed = 0 
+            levi.drive.steering_angle = 0
+        
+        #case where angle and distance are off
+        else:
+        
+            self.direction = 1 if dist_err > 0 else -1
+
+            P_err = self.P*angle
+            D_err = 0
+            if delta_t > 0:
+                D_err = self.D*(angle - self.last_angle)/delta_t
+            
+            levi.drive.speed = self.direction*min(self.velocity, abs(dist_err) + 0.1)
+            levi.drive.steering_angle = self.direction*(P_err + D_err)
+        
+        self.last_time = current_time
+        levi.drive.acceleration = 0
+        levi.drive.steering_angle_velocity = 0
+        levi.drive.jerk = 0
+        levi.header.stamp = rospy.Time.now()
+        self.drive_pub.publish(levi)
+        #self.error_publisher()
 
     def error_publisher(self):
         """

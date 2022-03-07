@@ -69,8 +69,23 @@ def cd_sift_ransac(img, template):
 
 		########## YOUR CODE STARTS HERE ##########
 
-		x_min = y_min = x_max = y_max = 0
+		#x_min = y_min = x_max = y_max = 0
+                dst = cv2.perspectiveTransform(pts, M)
+                
+                bb_c = np.int32(dst)
+                #x,y = [list(c) for c in zip(*bb_c)]
+                bb_c = bb_c.reshape(4,2)
 
+                #x_min = np.min(x)
+                #x_max = np.max(x)
+                #y_min = np.min(y)
+                #y_max = np.min(y)
+                
+                mins =  np.min(bb_c,axis = 0)
+                maxs = np.max(bb_c, axis = 0)
+                
+                x_min, y_min = mins[0], mins[1]
+                x_max, y_max = maxs[0], maxs[1]
 		########### YOUR CODE ENDS HERE ###########
 
 		# Return bounding box
@@ -118,7 +133,29 @@ def cd_template_matching(img, template):
 
 		# Remember to resize the bounding box using the highest scoring scale
 		# x1,y1 pixel will be accurate, but x2,y2 needs to be correctly scaled
-		bounding_box = ((0,0),(0,0))
+                
+                #ratio
+                #r = grey_img.shape[1] / float(resized_template.shape[1])
+                #edged = cv2.Canny(resized_template, 50, 200)
+                result = cv2.matchTemplate(img_canny, resized_template, cv2.TM_CCORR_NORMED)
+                (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(result)
+                if best_match is None or maxVal > best_match[0]:
+                    best_match = (maxVal, maxLoc,h,w )
+                    startX = int(maxLoc[0])
+                    startY = int(maxLoc[1])
+                    endX = int(maxLoc[0] + w)
+                    endY = int(maxLoc[1]+h)
+
+        #(_, maxLoc,h,w) = best_match
+        #(startX, startY) = (int(maxLoc[0] * r), int(maxLoc[1] * r))
+        #(endX, endY) = (int((maxLoc[0] + img_width) * r), int((maxLoc[1] + img_height) * r))
+        #startX, startY = (int(maxLoc[0]), int((maxLoc[1]))
+        #endX, endY = ((int(maxLoc[0] + w)), int((maxLoc[1]+h)))
+
+	bounding_box = ((startX,startY),(endX,endY))
+        print(bounding_box)
 		########### YOUR CODE ENDS HERE ###########
 
 	return bounding_box
+
+
