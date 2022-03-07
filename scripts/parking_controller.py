@@ -28,12 +28,12 @@ class ParkingController():
         self.last_angle = 0
         self.direction = 1
         self.velocity = 1
-        self.angle_tolerance = 3.0*np.pi/180.0 #3 degrees in radians
+        self.angle_tolerance = 5.0*np.pi/180.0 #3 degrees in radians
         self.distance_tolerance = 0.05
         self.last_time = None
         
-        self.P = 6.9
-        self.D = 4.2
+        self.P = 4.2
+        self.D = 2
 
 
     def relative_cone_callback(self, msg):
@@ -54,8 +54,9 @@ class ParkingController():
         delta_t = current_time - self.last_time
 
         #case where we're near right distance but wrong angle
-        if abs(dist_err) < self.distance_tolerance + 0.15  and abs(angle) > self.angle_tolerance:
-            levi.drive.speed = self.direction*0.4
+        if abs(dist_err) < self.distance_tolerance + 0.25  and abs(angle) > self.angle_tolerance:
+            if dist_err < -0.05: self.direction = -1
+            levi.drive.speed = self.direction*0.5*self.velocity
             levi.drive.steering_angle = self.direction*self.P*angle
             
 
@@ -75,7 +76,8 @@ class ParkingController():
                 D_err = self.D*(angle - self.last_angle)/delta_t
             
             levi.drive.speed = self.direction*min(self.velocity, abs(dist_err) + 0.1)
-            levi.drive.steering_angle = self.direction*(P_err + D_err)
+            levi.drive.steering_angle = self.direction*(P_err + D_err) \
+                    if abs(angle) > self.angle_tolerance else 0
         
         self.last_time = current_time
         levi.drive.acceleration = 0
