@@ -85,7 +85,7 @@ class ParkingController():
         levi.drive.jerk = 0
         levi.header.stamp = rospy.Time.now()
         self.drive_pub.publish(levi)
-        #self.error_publisher()
+        self.error_publisher()
 
     def error_publisher(self):
         """
@@ -93,14 +93,11 @@ class ParkingController():
         with rqt_plot to plot the success of the controller
         """
         error_msg = ParkingError()
+        error_msg.y_error = self.relative_y
+        error_msg.x_error = self.relative_x - self.parking_distance
+        error_msg.distance_error = np.sqrt(np.square(self.relative_y) + \
+                np.square(self.relative_x)) - self.parking_distance
 
-        #################################
-
-        # YOUR CODE HERE
-        # Populate error_msg with relative_x, relative_y, sqrt(x^2+y^2)
-
-        #################################
-        
         self.error_pub.publish(error_msg)
 
 if __name__ == '__main__':
