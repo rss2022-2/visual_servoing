@@ -81,7 +81,7 @@ class ParkingController():
         
         self.last_time = current_time
         levi.drive.acceleration = 0
-        levi.drive.steering_angle_velocity = 0
+        levi.drive.steering_angle_velocity = 0.5
         levi.drive.jerk = 0
         levi.header.stamp = rospy.Time.now()
         self.drive_pub.publish(levi)
