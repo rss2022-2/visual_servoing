@@ -33,6 +33,10 @@ class ParkingController():
         self.velocity = 1
         self.angle_tolerance = 1
         self.distance_tolerance = self.parking_distance/10
+        
+        self.P = 6.9
+        self.D = 1.3
+        self.I = 0
 
 
     def relative_cone_callback(self, msg):
@@ -49,11 +53,31 @@ class ParkingController():
         if self.last_time is None: self.last_time = current_time
         delta_time = current_time - self.last_time
 
-        self.direction = 1 if \
-                distance > (self.parking_distance + self.distance_tolerance) \
-                else -1 if  distance < (self.parking_distance - self.distance_tolerance) \
-                else self.direction
+        err = distance - self.parking_distance
+        if abs(err) < self.distance_tolerance: err = 0
+        self.sum_error += err
+        
+        #case where we're at right distance but wrong angle
+        if err == 0  and abs(theta) > 3:
+            pass
 
+        #case where we are parked
+        elif err == 0:
+            pass
+        
+        #case where angle and distance are off
+        else:
+        
+            self.direction = 1 if \
+                    distance > (self.parking_distance + self.distance_tolerance) \
+                    else -1 if  distance < (self.parking_distance - self.distance_tolerance) \
+                    else self.direction
+        
+
+            P_err = self.P*err
+            D_err = 0
+            if delta_time > 0:
+                D_err = err - self.last_error
 
         self.drive_pub.publish(drive_cmd)
         self.error_publisher()
