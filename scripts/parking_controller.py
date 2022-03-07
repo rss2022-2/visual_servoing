@@ -25,18 +25,35 @@ class ParkingController():
         self.parking_distance = .75 # meters; try playing with this number!
         self.relative_x = 0
         self.relative_y = 0
+        self.sum_error = 0
+        self.last_error = 0
+        self.windup = 10
+        self.last_time = None
+        self.direction = 1
+        self.velocity = 1
+        self.angle_tolerance = 1
+        self.distance_tolerance = self.parking_distance/10
+
 
     def relative_cone_callback(self, msg):
         self.relative_x = msg.x_pos
         self.relative_y = msg.y_pos
         drive_cmd = AckermannDriveStamped()
 
-        #################################
+        distance = np.sqrt(\
+                np.square(self.relative_x) + \
+                np.square(self.relative_y))
+        theta = np.arctan(self.relative_y/self.relative_x)
 
-        # YOUR CODE HERE
-        # Use relative position and your control law to set drive_cmd
+        current_time = rospy.get_time()
+        if self.last_time is None: self.last_time = current_time
+        delta_time = current_time - self.last_time
 
-        #################################
+        self.direction = 1 if \
+                distance > (self.parking_distance + self.distance_tolerance) \
+                else -1 if  distance < (self.parking_distance - self.distance_tolerance) \
+                else self.direction
+
 
         self.drive_pub.publish(drive_cmd)
         self.error_publisher()
