@@ -10,8 +10,6 @@ from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point #geometry_msgs not in CMake file
 from visual_servoing.msg import ConeLocationPixel
 
-from computer_vision.color_segmentation import cd_color_segmentation
-
 # import your color segmentation algorithm; call this function in ros_image_callback!
 from computer_vision.color_segmentation import cd_color_segmentation
 
@@ -46,19 +44,23 @@ class ConeDetector():
         # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
         #################################
 
+        #image = cv2.rotate(self.bridge.imgmsg_to_cv2(image_msg, "bgr8"),cv2.ROTATE_180)
         image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
 
         debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
         self.debug_pub.publish(debug_msg)
 
-        bot_right, top_left = cd_color_segmentation(image, None)
+        try:
+            bot_right, top_left = cd_color_segmentation(image, None)
 
-        cone_loc_pixel_msg = ConeLocationPixel()
+            cone_loc_pixel_msg = ConeLocationPixel()
 
-        cone_loc_pixel_msg.u = (bot_right[0] + top_left[0])/2
-        cone_loc_pixel_msg.v = min(bot_right[1], top_left[1])
+            cone_loc_pixel_msg.u = (bot_right[0] + top_left[0])/2
+            cone_loc_pixel_msg.v = min(bot_right[1], top_left[1])
         
-        self.cone_pub.publish(cone_loc_pixel_msg)
+            self.cone_pub.publish(cone_loc_pixel_msg)
+        except:
+            rospy.loginfo("No cone detected!")
 
 if __name__ == '__main__':
     try:
