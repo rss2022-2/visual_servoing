@@ -55,9 +55,7 @@ class ParkingController():
         #calculate and filter distance error
         dist_err = self.low_pass_filter(self.prev_dist_err,\
                        dist - self.parking_distance)
-        #if abs(dist_err) < self.distance_tolerance: dist_err = 0
-        print("dist_err" + str(dist_err) + "\t angle: " + str(angle))
-
+        
         #timing stuff
         current_time = rospy.get_time()
         if self.last_time is None: self.last_time = current_time
@@ -93,7 +91,6 @@ class ParkingController():
         error_msg.x_error = self.relative_x - self.parking_distance
         error_msg.distance_error = np.sqrt(np.square(self.relative_y) + \
                 np.square(self.relative_x)) - self.parking_distance
-        print(error_msg.distance_error)
         self.error_pub.publish(error_msg)
 
     def low_pass_filter(self, prev_val, cur_val, alpha=0.5):
@@ -137,7 +134,6 @@ class ParkingController():
 
             steering_angle = self.direction*angle \
                 if abs(angle) > self.angle_tolerance else 0
-            print("Branch 3")
             return (speed, steering_angle)
 
 if __name__ == '__main__':
