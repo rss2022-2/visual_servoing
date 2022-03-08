@@ -28,12 +28,12 @@ class ParkingController():
         self.last_angle = 0
         self.direction = 1
         self.velocity = 1
-        self.angle_tolerance = 5.0*np.pi/180.0 #3 degrees in radians
+        self.angle_tolerance = 0.1*np.pi/180.0 #3 degrees in radians
         self.distance_tolerance = 0.05
         self.last_time = None
         
-        self.P = 4.2
-        self.D = 2
+        self.P = 1
+        self.D = 0
 
 
     def relative_cone_callback(self, msg):
@@ -44,7 +44,7 @@ class ParkingController():
         distance = np.sqrt(\
                 np.square(self.relative_x) + \
                 np.square(self.relative_y))
-        angle = np.arctan(self.relative_y/self.relative_x)
+        angle = np.arctan2(self.relative_y,self.relative_x)
         print("angle: " + str(angle) + "\t dist: " + str(distance))
         dist_err = distance - self.parking_distance
         if abs(dist_err) < self.distance_tolerance: dist_err = 0
@@ -56,7 +56,7 @@ class ParkingController():
         #case where we're near right distance but wrong angle
         if abs(dist_err) < self.distance_tolerance + 0.25  and abs(angle) > self.angle_tolerance:
             if dist_err < -0.05: self.direction = -1
-            levi.drive.speed = self.direction*0.5*self.velocity
+            levi.drive.speed = self.direction*abs(dist_err)
             levi.drive.steering_angle = self.direction*self.P*angle
             
 
@@ -75,13 +75,13 @@ class ParkingController():
             if delta_t > 0:
                 D_err = self.D*(angle - self.last_angle)/delta_t
             
-            levi.drive.speed = self.direction*min(self.velocity, abs(dist_err) + 0.1)
-            levi.drive.steering_angle = self.direction*(P_err + D_err) \
+            levi.drive.speed = self.direction*abs(dist_err)
+            levi.drive.steering_angle = (P_err + D_err) \
                     if abs(angle) > self.angle_tolerance else 0
         
         self.last_time = current_time
         levi.drive.acceleration = 0
-        levi.drive.steering_angle_velocity = 0.5
+        levi.drive.steering_angle_velocity = 0
         levi.drive.jerk = 0
         levi.header.stamp = rospy.Time.now()
         self.drive_pub.publish(levi)
