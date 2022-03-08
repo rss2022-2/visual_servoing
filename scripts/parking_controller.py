@@ -28,7 +28,7 @@ class ParkingController():
         self.last_angle = 0
         self.direction = 1
         self.velocity = 1
-        self.angle_tolerance = 0.1*np.pi/180.0 #3 degrees in radians
+        self.angle_tolerance = 3*np.pi/180.0 #3 degrees in radians
         self.distance_tolerance = 0.05
         self.last_time = None
         
@@ -45,7 +45,7 @@ class ParkingController():
                 np.square(self.relative_x) + \
                 np.square(self.relative_y))
         angle = np.arctan2(self.relative_y,self.relative_x)
-        print("angle: " + str(angle) + "\t dist: " + str(distance))
+        # print("angle: " + str(angle) + "\t dist: " + str(distance))
         dist_err = distance - self.parking_distance
         if abs(dist_err) < self.distance_tolerance: dist_err = 0
 
@@ -56,14 +56,16 @@ class ParkingController():
         #case where we're near right distance but wrong angle
         if abs(dist_err) < self.distance_tolerance + 0.25  and abs(angle) > self.angle_tolerance:
             if dist_err < -0.05: self.direction = -1
-            levi.drive.speed = self.direction*abs(dist_err)
+            levi.drive.speed = self.direction*0.5*self.velocity 
             levi.drive.steering_angle = self.direction*self.P*angle
+            print("right dist wrong angl")
             
 
         #case where we are parked
         elif dist_err == 0:
             levi.drive.speed = 0 
             levi.drive.steering_angle = 0
+            print("parked")
         
         #case where angle and distance are off
         else:
@@ -78,6 +80,8 @@ class ParkingController():
             levi.drive.speed = self.direction*abs(dist_err)
             levi.drive.steering_angle = (P_err + D_err) \
                     if abs(angle) > self.angle_tolerance else 0
+            
+            print("all off")
         
         self.last_time = current_time
         levi.drive.acceleration = 0
