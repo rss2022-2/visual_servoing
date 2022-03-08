@@ -28,20 +28,21 @@ class ParkingController():
         self.last_angle = 0
         self.last_dist_err = 0
         self.direction = 1
-        self.velocity = 1
+        self.velocity = 0.5
         self.angle_tolerance = 3*np.pi/180.0 #3 degrees in radians
         self.distance_tolerance = 0.05
         self.last_time = None
         
-        self.P = 1
-        self.D = 0.5
-        self.I = 0.2
+        self.P = 0.5
+        self.D = 0
+        self.I = 0
         self.I_err = 0
 
 
     def relative_cone_callback(self, msg):
         self.relative_x = msg.x_pos
         self.relative_y = msg.y_pos
+        print(msg.x_pos, msg.y_pos)
         levi = AckermannDriveStamped()
 
         distance = np.sqrt(\
@@ -80,7 +81,7 @@ class ParkingController():
             D_err = 0
             if delta_t > 0:
                 D_err = self.D*(dist_err - self.last_dist_err)/delta_t
-                self.I_err = self.I_err + self.P*(dist_err)*delta_t
+                self.I_err = self.I_err + self.I*(dist_err)*delta_t
                 if abs(self.I_err) > abs(self.velocity):
                     self.I_err = np.sign(self.I_err) * abs(self.velocity)
             
