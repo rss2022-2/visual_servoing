@@ -79,7 +79,7 @@ class HomographyTransformer:
         relative_xy_msg.y_pos = y
 
         self.cone_pub.publish(relative_xy_msg)
-	self.draw_marker(x, y, "base_link")
+        self.draw_marker(x, y, "base_link")
         
     def rqt_callback(self, point_msg):
         x, y = self.transformUvToXy(point_msg.x, point_msg.y)
@@ -126,7 +126,6 @@ class HomographyTransformer:
         marker.pose.position.x = cone_x
         marker.pose.position.y = cone_y
         self.marker_pub.publish(marker)
-
 
 if __name__ == "__main__":
     rospy.init_node('homography_transformer')

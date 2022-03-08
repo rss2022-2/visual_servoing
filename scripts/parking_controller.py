@@ -26,14 +26,17 @@ class ParkingController():
         self.relative_x = 0
         self.relative_y = 0
         self.last_angle = 0
+        self.last_dist_err = 0
         self.direction = 1
-        self.velocity = 0.3
+        self.velocity = 1
         self.angle_tolerance = 3*np.pi/180.0 #3 degrees in radians
         self.distance_tolerance = 0.05
         self.last_time = None
         
         self.P = 1
-        self.D = 0
+        self.D = 0.5
+        self.I = 0.2
+        self.I_err = 0
 
 
     def relative_cone_callback(self, msg):
@@ -47,49 +50,51 @@ class ParkingController():
         angle = np.arctan2(self.relative_y,self.relative_x)
         # print("angle: " + str(angle) + "\t dist: " + str(distance))
         dist_err = distance - self.parking_distance
-        if abs(dist_err) < self.distance_tolerance: dist_err = 0
+        # if abs(dist_err) < self.distance_tolerance: dist_err = 0
 
         current_time = rospy.get_time()
         if self.last_time is None: self.last_time = current_time
         delta_t = current_time - self.last_time
 
-        #case where we're near right distance but wrong angle
-        if abs(dist_err) < self.distance_tolerance + 0.25  and abs(angle) > self.angle_tolerance:
-            if dist_err < -0.05: self.direction = -1
-            levi.drive.speed = self.direction*0.5*self.velocity 
-            levi.drive.steering_angle = self.direction*self.P*angle
-            print("right dist wrong angl")
+        # #case where we're near right distance but wrong angle
+        # if abs(dist_err) < self.distance_tolerance + 0.25  and abs(angle) > self.angle_tolerance:
+        #     if dist_err < -0.05: self.direction = -1
+        #     levi.drive.speed = self.direction*0.5*self.velocity 
+        #     levi.drive.steering_angle = self.direction*self.P*angle
+        #     print("right dist wrong angl")
             
 
         #case where we are parked
-        elif dist_err == 0:
+        if abs(dist_err) < self.distance_tolerance and abs(angle) < self.angle_tolerance:
             levi.drive.speed = 0 
             levi.drive.steering_angle = 0
+            self.I_err = 0
             print("parked")
         
         #case where angle and distance are off
         else:
         
-            self.direction = 1 if dist_err > 0 else -1
+            # self.direction = 1 if dist_err > 0 else -1
 
-            P_err = self.P*angle
+            P_err = self.P*dist_err
             D_err = 0
             if delta_t > 0:
-                D_err = self.D*(angle - self.last_angle)/delta_t
+                D_err = self.D*(dist_err - self.last_dist_err)/delta_t
+                self.I_err = self.I_err + self.P*(dist_err)*delta_t
+                if abs(self.I_err) > abs(self.velocity):
+                    self.I_err = np.sign(self.I_err) * abs(self.velocity)
             
-            levi.drive.speed = dist_err/2
-            levi.drive.steering_angle = (P_err + D_err) \
-                    if abs(angle) > self.angle_tolerance else 0
-            if levi.drive.speed < 0: levi.drive.speed *= 2
-            
-            #print(levi.drive.speed)
+            levi.drive.speed = P_err + D_err + self.I_err
+            levi.drive.steering_angle = angle * np.sign(levi.drive.speed)
+            print("P ", P_err, "I ", self.I_err, "D ", D_err)
             print("all off")
         
         if abs(levi.drive.speed) > abs(self.velocity):
            levi.drive.speed = np.sign(levi.drive.speed) * abs(self.velocity)
 
-        print(levi.drive.steering_angle, levi.drive.speed)
+        print("angle ", levi.drive.steering_angle, "speed ", levi.drive.speed)
         self.last_time = current_time
+        self.last_dist_err = dist_err
         levi.drive.acceleration = 0.1
         levi.drive.steering_angle_velocity = 0
         levi.drive.jerk = 0.1
