@@ -34,12 +34,15 @@ class ParkingController():
 
         self.last_time = None
         self.prev_dist_err = 0
-        self.sum_dist_err = 0
-        self.windup = 5
-        
-        self.P = 1
-        self.I = 0
-        self.D = 0
+        self.prev_ang = 0
+
+        self.P = 1.2
+        self.I = 0.5
+        self.D = 0.3
+        self.I_sum = 0
+
+        self.P_ang = 1
+        self.D_ang = 0.2
 
     def relative_cone_callback(self, msg):
         self.relative_x = msg.x_pos
@@ -63,11 +66,11 @@ class ParkingController():
 
         #update net error
         if abs(dist_err) > self.distance_tolerance:
-            self.sum_dist_err += dist_err*delta_t 
-        if self.sum_dist_err > self.windup:
-            self.sum_dist_err = self.windup
-        elif self.sum_dist_err < -self.windup:
-            self.sum_dist_err = -self.windup
+            self.I_sum += dist_err*delta_t 
+        if self.I_sum > self.velocity:
+            self.I_sum = self.velocity
+        elif self.I_sum < -self.velocity:
+            self.I_sum = -self.velocity
 
         #update drive message
         levi.drive.speed, levi.drive.steering_angle = \
@@ -76,7 +79,7 @@ class ParkingController():
         self.last_time = current_time
         levi.drive.acceleration = 0
         levi.drive.steering_angle_velocity = 0.5
-        levi.drive.jerk = 0
+        levi.drive.jerk = 0.1
         levi.header.stamp = rospy.Time.now()
         self.drive_pub.publish(levi)
         self.error_publisher()
@@ -97,20 +100,27 @@ class ParkingController():
         return alpha*cur_val + (1-alpha)*prev_val
 
     def controller(self, dist_err, angle, delta_t):
-        
+        P_ang = self.P_ang*angle
+        D_ang = 0
         #case where we're near right distance but wrong angle
         if abs(dist_err) < self.distance_tolerance + 0.75  and \
                 abs(angle) > self.angle_tolerance:
+
             #if we're too close or angle is way off, reverse
             if dist_err < 0 \
                     or (dist_err < self.distance_tolerance + 0.25 \
                     and abs(angle) > 20.0*np.pi/180.0): 
                 self.direction = -1
+
             #if cone is behind car, go forward
             if abs(angle) > np.pi*2./3.:
                 self.direction = 1
+
+            if delta_t > 0:
+                D_ang = self.D_ang*(angle - self.prev_ang)/delta_t
+
             return (self.direction*0.5*self.velocity, \
-                    self.direction*angle)
+                    self.direction*(P_ang + D_ang))
             
 
         #case where we are parked
@@ -123,17 +133,19 @@ class ParkingController():
             self.direction = 1 if dist_err > 0 else -1
 
             P_err = self.P*dist_err
-            I_err = self.I*self.sum_dist_err
+            I_err = self.I*self.I_sum
             D_err = 0
             if delta_t > 0:
                 D_err = self.D*(dist_err - self.prev_dist_err)/delta_t
+                D_ang = self.D_ang*(angle - self.prev_ang)/delta_t
             
             speed = self.direction*abs(P_err + I_err + D_err)
             if speed > 1: speed = 1
             elif speed < -1: speed = -1
 
-            steering_angle = self.direction*angle \
+            steering_angle = self.direction*(P_ang + D_ang) \
                 if abs(angle) > self.angle_tolerance else 0
+
             return (speed, steering_angle)
 
 if __name__ == '__main__':
