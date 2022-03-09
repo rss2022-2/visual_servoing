@@ -22,20 +22,20 @@ class ParkingController():
         self.error_pub = rospy.Publisher("/parking_error",
             ParkingError, queue_size=10)
 
-        self.parking_distance = 1 # meters; try playing with this number!
+        self.parking_distance = 0.6 # meters; try playing with this number!
         self.relative_x = 0
         self.relative_y = 0
         self.last_angle = 0
         self.last_dist_err = 0
         self.direction = 1
-        self.velocity = 0.5
-        self.angle_tolerance = 3*np.pi/180.0 #3 degrees in radians
+        self.velocity = 0.25
+        self.angle_tolerance = 10*np.pi/180.0 #3 degrees in radians
         self.distance_tolerance = 0.05
         self.last_time = None
         
-        self.P = 0.5
-        self.D = 0
-        self.I = 0
+        self.P = 0.7
+        self.D = 0.0
+        self.I = 0.5
         self.I_err = 0
 
 
@@ -69,7 +69,7 @@ class ParkingController():
         if abs(dist_err) < self.distance_tolerance and abs(angle) < self.angle_tolerance:
             levi.drive.speed = 0 
             levi.drive.steering_angle = 0
-            self.I_err = 0
+            #self.I_err = 0
             print("parked")
         
         #case where angle and distance are off
