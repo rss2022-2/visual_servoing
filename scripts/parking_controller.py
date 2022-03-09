@@ -35,7 +35,7 @@ class ParkingController():
         
         self.P = 0.4
         self.D = 0.0
-        self.I = 0.3
+        self.I = 0.05
         self.I_err = 0
         self.min_gain = 0.16
 
@@ -83,12 +83,12 @@ class ParkingController():
             if delta_t > 0:
                 D_err = self.D*(dist_err - self.last_dist_err)/delta_t
                 self.I_err = self.I_err + self.I*(dist_err)*delta_t
-                if abs(self.I_err) > abs(self.velocity):
-                    self.I_err = np.sign(self.I_err) * abs(self.velocity)
+                if abs(self.I_err) > abs(self.velocity/2):
+                    self.I_err = np.sign(self.I_err) * abs(self.velocity/2)
             
             levi.drive.speed = P_err + D_err + self.I_err
             levi.drive.speed += np.sign(levi.drive.speed)*self.min_gain
-            levi.drive.steering_angle = angle * np.sign(levi.drive.speed)
+            levi.drive.steering_angle = angle * np.sign(levi.drive.speed) * 1.5
             print("P ", P_err, "I ", self.I_err, "D ", D_err)
             print("all off")
         
