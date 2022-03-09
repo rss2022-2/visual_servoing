@@ -22,7 +22,7 @@ class ParkingController():
         self.error_pub = rospy.Publisher("/parking_error",
             ParkingError, queue_size=10)
 
-        self.parking_distance = 0.6 # meters; try playing with this number!
+        self.parking_distance = 0.7 # meters; try playing with this number!
         self.relative_x = 0
         self.relative_y = 0
         self.last_angle = 0
@@ -33,10 +33,11 @@ class ParkingController():
         self.distance_tolerance = 0.05
         self.last_time = None
         
-        self.P = 0.7
+        self.P = 0.4
         self.D = 0.0
-        self.I = 0.5
+        self.I = 0.3
         self.I_err = 0
+        self.min_gain = 0.16
 
 
     def relative_cone_callback(self, msg):
@@ -86,6 +87,7 @@ class ParkingController():
                     self.I_err = np.sign(self.I_err) * abs(self.velocity)
             
             levi.drive.speed = P_err + D_err + self.I_err
+            levi.drive.speed += np.sign(levi.drive.speed)*self.min_gain
             levi.drive.steering_angle = angle * np.sign(levi.drive.speed)
             print("P ", P_err, "I ", self.I_err, "D ", D_err)
             print("all off")
