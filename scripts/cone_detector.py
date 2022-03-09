@@ -46,10 +46,7 @@ class ConeDetector():
 
         #image = cv2.rotate(self.bridge.imgmsg_to_cv2(image_msg, "bgr8"),cv2.ROTATE_180)
         image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
-
-        debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
-        self.debug_pub.publish(debug_msg)
-
+        
         try:
             bot_right, top_left = cd_color_segmentation(image, None)
 
@@ -59,6 +56,12 @@ class ConeDetector():
             cone_loc_pixel_msg.v = min(bot_right[1], top_left[1])
         
             self.cone_pub.publish(cone_loc_pixel_msg)
+            
+            cv2.rectangle(image, bot_right, top_left, (0,255,0),2)
+            cv2.circle(image, (cone_loc_pixel_msg.u,cone_loc_pixel_msg.v), radius=5, color=(0, 0, 255), thickness=-1)
+            debug_msg = self.bridge.cv2_to_imgmsg(image, "bgr8")
+            self.debug_pub.publish(debug_msg)
+
         except:
             rospy.loginfo("No cone detected!")
 

@@ -21,7 +21,9 @@ from geometry_msgs.msg import Point
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
-PTS_IMAGE_PLANE = [[216, 52],
+#PTS_IMAGE_PLANE = [[453, 84], [442, 105], [311,95], [346,110]]
+
+PTS_IMAGE_PLANE =  [[216, 52],
                    [449, 52],
                    [254, 88],
                    [417, 88]] # dummy points
@@ -32,10 +34,12 @@ PTS_IMAGE_PLANE = [[216, 52],
 
 ######################################################
 ## DUMMY POINTS -- ENTER YOUR MEASUREMENTS HERE
+#PTS_GROUND_PLANE = [[0.27,0.06], [0.35,0.08], [0.31,-0.04], [0.37,-0.02]]
+
 PTS_GROUND_PLANE = [[0.27, -0.08],
-                    [0.27, 0.08],
-                    [0.37, -0.08],
-                    [0.37, 0.08]] # dummy points
+                   [0.27, 0.08],
+                   [0.37, -0.08],
+                  [0.37, 0.08]] # dummy points
 ######################################################
 
 METERS_PER_INCH = 0.0254
@@ -79,11 +83,15 @@ class HomographyTransformer:
         relative_xy_msg.y_pos = y
 
         self.cone_pub.publish(relative_xy_msg)
-        self.draw_marker(x+0.38, y, "base_link")
+        self.draw_marker(x, y, "zed_camera_center")
         
     def rqt_callback(self, point_msg):
         x, y = self.transformUvToXy(point_msg.x, point_msg.y)
-        self.draw_marker(x, y, "/zed_left_camera_frame")
+        self.draw_marker(x, y, "zed_camera_center")
+        relative_xy_msg = ConeLocation()
+        relative_xy_msg.x_pos = x
+        relative_xy_msg.y_pos = y
+        self.cone_pub.publish(relative_xy_msg)
 
 
     def transformUvToXy(self, u, v):
