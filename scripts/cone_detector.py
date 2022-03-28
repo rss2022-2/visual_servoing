@@ -46,6 +46,10 @@ class ConeDetector():
 
         #image = cv2.rotate(self.bridge.imgmsg_to_cv2(image_msg, "bgr8"),cv2.ROTATE_180)
         image = self.bridge.imgmsg_to_cv2(image_msg, "bgr8")
+
+        height, width, channels = image.shape
+	
+        image = cv2.rectangle(image, (0,0), (width, 100), (0,0,0), -1)
         
         try:
             bot_right, top_left = cd_color_segmentation(image, None)
